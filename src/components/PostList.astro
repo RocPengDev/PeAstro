@@ -1,0 +1,329 @@
+---
+import FormattedDate from './FormattedDate.astro';
+import { SITE_CONFIG } from '../consts';
+
+interface Props {
+  posts: any[];
+  currentTag?: string;
+  showPagination?: boolean;
+  currentPage?: number;
+  totalPages?: number;
+  baseUrl?: string;
+  totalPosts?: number;
+}
+
+const { 
+  posts, 
+  currentTag, 
+  showPagination = false, 
+  currentPage = 1, 
+  totalPages = 1, 
+  baseUrl = '/page',
+  totalPosts = posts.length 
+} = Astro.props;
+---
+
+<div class="posts-list">
+  {posts.map((post) => (
+    <article class="post-item">
+      <a href={`/article/${post.id}/`} class="post-link">
+        <div class="post-info">
+          <div class="post-title-section">
+            <h3 class="post-title">{post.data.title}</h3>
+            {post.data.tags?.length > 0 && (
+              <div class="post-tags">
+                {post.data.tags.slice(0, SITE_CONFIG.MAX_TAGS_DISPLAY).map((tag: string) => (
+                  <a 
+                    href={`/tags/${tag}`} 
+                    class={`tag small ${currentTag && tag === currentTag ? 'current-tag' : ''}`}
+                    onclick={(e) => e.stopPropagation()}
+                  >
+                    #{tag}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+          <div class="post-meta">
+            <time datetime={post.data.pubDate.toISOString()}>
+              <FormattedDate date={post.data.pubDate} />
+            </time>
+          </div>
+        </div>
+      </a>
+    </article>
+  ))}
+</div>
+
+{showPagination && totalPages > 1 && (
+  <div class="pagination">
+    <div class="pagination-buttons">
+      {currentPage !== 1 ? (
+        <a 
+          href={currentPage === 2 && baseUrl === '/page' ? '/' : `${baseUrl}/${currentPage - 1}`} 
+          class="pagination-btn"
+        >
+          上一页
+        </a>
+      ) : (
+        <span class="pagination-btn disabled">上一页</span>
+      )}
+      
+      {totalPages > 1 && (
+        <div class="pagination-numbers">
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            let pageNum;
+            if (totalPages < 6) {
+              pageNum = i + 1;
+            } else if (currentPage < 4) {
+              pageNum = i + 1;
+            } else if (currentPage > totalPages - 3) {
+              pageNum = totalPages - 4 + i;
+            } else {
+              pageNum = currentPage - 2 + i;
+            }
+            
+            let href;
+            if (pageNum === 1 && baseUrl === '/page') {
+              href = '/';
+            } else if (baseUrl === '/page') {
+              href = `/page/${pageNum}`;
+            } else {
+              href = `${baseUrl}/${pageNum}`;
+            }
+            
+            return <a 
+              href={href}
+              class={`pagination-number ${pageNum === currentPage ? 'current' : ''}`}
+            >
+              {pageNum}
+            </a>;
+          })}
+        </div>
+      )}
+      
+      {currentPage !== totalPages ? (
+        <a href={`${baseUrl}/${currentPage + 1}`} class="pagination-btn">下一页</a>
+      ) : (
+        <span class="pagination-btn disabled">下一页</span>
+      )}
+    </div>
+  </div>
+)}
+
+<style>
+/* Posts List Styling */
+.posts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.post-item {
+  transition: all 0.2s ease;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.post-item:last-child {
+  border-bottom: none;
+}
+
+.post-item:hover {
+  background-color: var(--bg-secondary);
+  margin: 0 -1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+}
+
+.post-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.post-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.post-title-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.post-title {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0;
+  color: var(--primary-text);
+  transition: color 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.post-item:hover .post-title {
+  color: var(--accent);
+}
+
+.post-meta {
+  color: var(--secondary-text);
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.post-tags {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.current-tag {
+  background-color: var(--accent) !important;
+  color: white !important;
+}
+
+/* Pagination */
+.pagination {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-light);
+  text-align: center;
+}
+
+.pagination-info {
+  color: var(--secondary-text);
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.pagination-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-light);
+  background-color: var(--bg-primary);
+  color: var(--primary-text);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 0.875rem;
+}
+
+.pagination-btn:hover:not(.disabled) {
+  background-color: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.pagination-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.pagination-numbers {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0 1rem;
+}
+
+.pagination-number {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-light);
+  background-color: var(--bg-primary);
+  color: var(--primary-text);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+  min-width: 2.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.pagination-number:hover {
+  background-color: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.pagination-number.current {
+  background-color: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .post-title-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .post-info {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  
+  .post-title {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+  
+  .pagination-buttons {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .pagination-numbers {
+    margin: 0;
+    order: 1;
+  }
+  
+  .pagination-info {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .post-item:hover {
+    margin: 0 -0.5rem;
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .pagination-numbers {
+    gap: 0.125rem;
+  }
+  
+  .pagination-number {
+    padding: 0.375rem 0.5rem;
+    min-width: 2rem;
+    font-size: 0.8rem;
+  }
+  
+  .pagination-btn {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+</style>

@@ -1,0 +1,271 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { SITE_TITLE, SITE_DESCRIPTION, SITE_CONFIG } from '../../consts';
+import { getCollection } from 'astro:content';
+import PostList from '../../components/PostList.astro';
+
+export async function getStaticPaths() {
+  const allPosts = await getCollection('blog');
+  const allTags = [...new Set(allPosts.flatMap(post => post.data.tags || []))];
+  
+  return allTags.map(tag => ({
+    params: { tag },
+    props: { tag }
+  }));
+}
+
+const { tag } = Astro.props;
+
+// Get all posts with this tag
+const allPosts = (await getCollection('blog'))
+  .filter(post => !post.data.draft && post.data.tags?.includes(tag))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const totalPosts = allPosts.length;
+const currentPage = 1; // For now, show all posts on tag pages
+const postsToShow = allPosts.slice(0, SITE_CONFIG.POSTS_PER_PAGE);
+const hasMorePosts = totalPosts > SITE_CONFIG.POSTS_PER_PAGE;
+const totalPages = Math.ceil(totalPosts / SITE_CONFIG.POSTS_PER_PAGE);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead title={`标签: ${tag} - ${SITE_TITLE}`} description={`查看标签 "${tag}" 下的所有文章`} />
+  </head>
+  <body>
+    <Header />
+    <main>
+      <!-- Tag Header -->
+      <section class="tag-header">
+        <div class="tag-header-content">
+          <div class="tag-info">
+            <h1 class="tag-title">#{tag}</h1>
+            <p class="tag-description">共 {totalPosts} 篇文章</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Posts List -->
+      <section class="posts-section">
+        <PostList 
+          posts={postsToShow} 
+          currentTag={tag}
+          showPagination={hasMorePosts}
+          currentPage={1}
+          totalPages={totalPages}
+          baseUrl={`/tags/${tag}/page`}
+          totalPosts={totalPosts}
+        />
+      </section>
+    </main>
+    <Footer />
+  </body>
+</html>
+
+<style>
+/* Tag Header */
+.tag-header {
+  padding: 2rem 1rem;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.tag-header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tag-info {
+  flex: 1;
+}
+
+.tag-title {
+  font-size: clamp(2rem, 4vw, 2.5rem);
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: var(--accent);
+}
+
+.tag-description {
+  color: var(--secondary-text);
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* Posts Section */
+.posts-section {
+  padding: 2rem 1rem;
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+/* Posts List Styling - Shared with homepage */
+.posts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.post-item {
+  transition: all 0.2s ease;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.post-item:last-child {
+  border-bottom: none;
+}
+
+.post-item:hover {
+  background-color: var(--bg-secondary);
+  margin: 0 -1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  border-bottom: 1px solid transparent;
+}
+
+.post-item:hover:last-child {
+  border-bottom: 1px solid transparent;
+}
+
+.post-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.post-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.post-title-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.post-title {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0;
+  color: var(--primary-text);
+  transition: color 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.post-item:hover .post-title {
+  color: var(--accent);
+}
+
+.post-meta {
+  color: var(--secondary-text);
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.post-tags {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.current-tag {
+  background-color: var(--accent) !important;
+  color: white !important;
+}
+
+/* Pagination */
+.pagination {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-light);
+  text-align: center;
+}
+
+.pagination-info {
+  color: var(--secondary-text);
+  margin-bottom: 1rem;
+}
+
+.pagination-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pagination-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-light);
+  background-color: var(--bg-primary);
+  color: var(--primary-text);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.pagination-btn:hover:not(.disabled) {
+  background-color: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.pagination-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.pagination-current {
+  color: var(--primary-text);
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .tag-header {
+    padding: 1.5rem 1rem;
+  }
+  
+  .posts-section {
+    padding: 1.5rem 1rem;
+  }
+  
+  .post-title-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .post-info {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .post-title {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+  
+  .pagination-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+</style>

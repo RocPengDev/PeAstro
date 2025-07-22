@@ -1,0 +1,48 @@
+name: Sync GitHub Issues to Markdown
+
+on:
+  issues:
+    types: [opened, edited]
+  workflow_dispatch:
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone with Personal Token
+        env:
+          TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+        run: |
+          git clone https://x-access-token:${TOKEN}@github.com/${{ github.repository }} repo
+          cd repo
+
+          # 保存当前路径到环境变量，供后续步骤使用
+          echo "REPO_PATH=$PWD" >> $GITHUB_ENV
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install axios
+
+      - name: Run sync script
+        run: node scripts/sync-issues.cjs
+        working-directory: ${{ env.REPO_PATH }}
+        env:
+          PERSONAL_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+
+      - name: Commit and push changes
+        env:
+          TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+        run: |
+          cd $REPO_PATH
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Auto sync blog issues to markdown" || echo "No changes"
+          git push origin HEAD

@@ -1,0 +1,163 @@
+---
+// Table of Contents component for article navigation
+---
+
+<nav class="toc" id="table-of-contents">
+  <div class="toc-header">
+    <h4>目录</h4>
+    <button class="toc-toggle" id="toc-toggle" aria-label="切换目录">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6,9 12,15 18,9"></polyline>
+      </svg>
+    </button>
+  </div>
+  <ul class="toc-list" id="toc-list">
+    <!-- Table of contents will be populated by JavaScript -->
+  </ul>
+</nav>
+
+<script>
+  function initTableOfContents() {
+    const tocList = document.getElementById('toc-list');
+    const tocToggle = document.getElementById('toc-toggle');
+    const toc = document.getElementById('table-of-contents');
+    
+    if (!tocList || !tocToggle || !toc) return;
+
+    // Find all headings in the article
+    const articleContent = document.querySelector('.article-content');
+    if (!articleContent) return;
+
+    const headings = articleContent.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    
+    if (headings.length === 0) {
+      toc.style.display = 'none';
+      // Add class to body to indicate no TOC
+      document.body.classList.add('no-toc');
+      return;
+    }
+
+    // Remove no-toc class if headings exist
+    document.body.classList.remove('no-toc');
+
+    // Generate unique IDs for headings that don't have them
+    headings.forEach((heading, index) => {
+      if (!heading.id) {
+        const text = heading.textContent?.trim() || '';
+        const id = text
+          .toLowerCase()
+          .replace(/[^\w\u4e00-\u9fa5\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .substring(0, 50);
+        heading.id = id || `heading-${index}`;
+      }
+    });
+
+    // Build table of contents
+    let tocHTML = '';
+    let currentLevel = 0;
+    
+    headings.forEach((heading) => {
+      const level = parseInt(heading.tagName.charAt(1));
+      const text = heading.textContent?.trim() || '';
+      const id = heading.id;
+      
+      if (level > currentLevel) {
+        for (let i = currentLevel; i < level - 1; i++) {
+          tocHTML += '<ul class="toc-sublist">';
+        }
+        if (currentLevel > 0) {
+          tocHTML += '<ul class="toc-sublist">';
+        }
+      } else if (level < currentLevel) {
+        for (let i = level; i < currentLevel; i++) {
+          tocHTML += '</ul>';
+        }
+      }
+      
+      tocHTML += `
+        <li class="toc-item toc-level-${level}">
+          <a href="#${id}" class="toc-link" data-heading-id="${id}">
+            <span>${text}</span>
+          </a>
+        </li>
+      `;
+      
+      currentLevel = level;
+    });
+    
+    // Close remaining open lists
+    for (let i = 1; i < currentLevel; i++) {
+      tocHTML += '</ul>';
+    }
+    
+    tocList.innerHTML = tocHTML;
+
+    // Add click handlers for smooth scrolling
+    const tocLinks = tocList.querySelectorAll('.toc-link');
+    tocLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = link.getAttribute('data-heading-id');
+        const target = document.getElementById(targetId!);
+        if (target) {
+          const offset = 80; // Account for fixed header
+          const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - offset;
+          window.scrollTo({
+            top: targetPosition,
+            behavior: 'smooth'
+          });
+          
+          // Update active link
+          updateActiveLink(targetId!);
+        }
+      });
+    });
+
+    // Toggle functionality for mobile
+    tocToggle.addEventListener('click', () => {
+      toc.classList.toggle('collapsed');
+    });
+
+    // Intersection Observer for active link highlighting
+    const observerOptions = {
+      rootMargin: '-80px 0px -80% 0px',
+      threshold: 0
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          updateActiveLink(entry.target.id);
+        }
+      });
+    }, observerOptions);
+
+    headings.forEach(heading => {
+      observer.observe(heading);
+    });
+
+    function updateActiveLink(activeId: string) {
+      tocLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('data-heading-id') === activeId) {
+          link.classList.add('active');
+        }
+      });
+    }
+  }
+
+  // Initialize on page load
+  function initialize() {
+    initTableOfContents();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize);
+  } else {
+    initialize();
+  }
+
+  // Re-initialize on navigation (for Astro's client-side routing)
+  document.addEventListener('astro:page-load', initialize);
+</script>

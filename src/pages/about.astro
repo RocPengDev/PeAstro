@@ -1,0 +1,12 @@
+---
+import { getEntry } from 'astro:content';
+import AboutLayout from '../layouts/AboutLayout.astro';
+
+// Get the about content from content collection
+const aboutEntry = await getEntry('about', 'index');
+const { Content } = await aboutEntry.render();
+---
+
+<AboutLayout {...aboutEntry.data}>
+	<Content />
+</AboutLayout>

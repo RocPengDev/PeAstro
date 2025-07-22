@@ -1,0 +1,87 @@
+---
+/**
+ * Base Head Component
+ * 
+ * Provides essential HTML head elements for all pages:
+ * - Meta tags for SEO optimization
+ * - Open Graph and Twitter Card support
+ * - Canonical URLs for search engines
+ * - Theme initialization script
+ * - Font preloading for performance
+ * - Global CSS imports
+ * 
+ * This component should be included in every page layout
+ * to ensure consistent SEO and meta tag handling.
+ * 
+ * Props:
+ * @param {string} title - Page title (required)
+ * @param {string} description - Page description (required)  
+ * @param {string} image - Optional social media image URL
+ */
+
+// Import global styles to ensure they're included on all pages
+import '../styles/global.css';
+import { SITE_CONFIG } from '../consts';
+
+interface Props {
+	title: string;
+	description: string;
+	image?: string;
+}
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const { title, description, image = '/blog-placeholder-1.jpg' } = Astro.props;
+---
+
+<!-- Global Metadata -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<meta name="generator" content={Astro.generator} />
+
+<!-- Font preloads -->
+<link rel="preload" href="/fonts/atkinson-regular.woff" as="font" type="font/woff" crossorigin />
+<link rel="preload" href="/fonts/atkinson-bold.woff" as="font" type="font/woff" crossorigin />
+
+<!-- Canonical URL -->
+<link rel="canonical" href={canonicalURL} />
+
+<!-- Primary Meta Tags -->
+<title>{title}</title>
+<meta name="title" content={title} />
+<meta name="description" content={description} />
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content={Astro.url} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={new URL(image, Astro.url)} />
+
+<!-- Twitter -->
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:url" content={Astro.url} />
+<meta property="twitter:title" content={title} />
+<meta property="twitter:description" content={description} />
+<meta property="twitter:image" content={new URL(image, Astro.url)} />
+
+<!-- Theme initialization script - runs before page render -->
+<script define:vars={{ defaultTheme: SITE_CONFIG.DEFAULT_THEME }}>
+	(function() {
+		// Set initial theme immediately to prevent flash
+		const getStoredTheme = () => localStorage.getItem('theme');
+		const getTheme = () => {
+			const stored = getStoredTheme();
+			// Validate stored theme is either 'dark' or 'light'
+			if (stored && (stored === 'dark' || stored === 'light')) {
+				return stored;
+			}
+			// Return config default (guaranteed to be 'dark' or 'light')
+			return defaultTheme;
+		};
+		
+		// Apply theme immediately to prevent flash of wrong theme
+		const theme = getTheme();
+		document.documentElement.setAttribute('data-theme', theme);
+	})();
+</script>

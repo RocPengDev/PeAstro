@@ -1,0 +1,186 @@
+---
+// CodeBlock component for handling code copy functionality
+---
+
+<script>
+  function initCodeCopy() {
+    // Find all pre elements that don't already have copy buttons
+    document.querySelectorAll('pre:not([data-copy-initialized])').forEach((pre) => {
+      // Mark as initialized to avoid duplicate buttons
+      pre.setAttribute('data-copy-initialized', 'true');
+      
+      // Create wrapper if needed
+      if (!pre.parentElement?.classList.contains('code-wrapper')) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-wrapper';
+        pre.parentNode?.insertBefore(wrapper, pre);
+        wrapper.appendChild(pre);
+      }
+      
+      // Create copy button with icon
+      const copyButton = document.createElement('button');
+      copyButton.className = 'copy-button';
+      copyButton.setAttribute('aria-label', '复制代码');
+      copyButton.innerHTML = `
+        <svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+          <polyline points="20,6 9,17 4,12"></polyline>
+        </svg>
+      `;
+      
+      // Position the button
+      const wrapper = pre.parentElement;
+      wrapper?.appendChild(copyButton);
+      
+      // Add click handler
+      copyButton.addEventListener('click', async () => {
+        const code = pre.querySelector('code') || pre;
+        if (!code) return;
+        
+        try {
+          const textContent = code.textContent || '';
+          await navigator.clipboard.writeText(textContent);
+          
+          // Show success state
+          const copyIcon = copyButton.querySelector('.copy-icon');
+          const checkIcon = copyButton.querySelector('.check-icon');
+          
+          if (copyIcon && checkIcon) {
+            copyIcon.style.display = 'none';
+            checkIcon.style.display = 'inline';
+            copyButton.classList.add('copied');
+            
+            // Show success message
+            showCopySuccess();
+            
+            // Reset after 3 seconds
+            setTimeout(() => {
+              copyIcon.style.display = 'inline';
+              checkIcon.style.display = 'none';
+              copyButton.classList.remove('copied');
+            }, 3000);
+          }
+        } catch (err) {
+          console.error('Failed to copy code:', err);
+          
+          // Fallback for older browsers
+          const textArea = document.createElement('textarea');
+          textArea.value = code.textContent || '';
+          textArea.style.position = 'fixed';
+          textArea.style.top = '-9999px';
+          document.body.appendChild(textArea);
+          textArea.select();
+          
+          try {
+            document.execCommand('copy');
+            showCopySuccess();
+          } catch (fallbackErr) {
+            console.error('Fallback copy failed:', fallbackErr);
+            showCopyError();
+          } finally {
+            document.body.removeChild(textArea);
+          }
+        }
+      });
+    });
+  }
+
+  function showCopySuccess() {
+    // Remove existing toast
+    const existingToast = document.querySelector('.copy-toast');
+    if (existingToast) {
+      existingToast.remove();
+    }
+
+    // Create and show success toast
+    const toast = document.createElement('div');
+    toast.className = 'copy-toast copy-toast-success';
+    toast.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="20,6 9,17 4,12"></polyline>
+      </svg>
+      代码已复制到剪贴板
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Trigger animation
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+
+  function showCopyError() {
+    // Remove existing toast
+    const existingToast = document.querySelector('.copy-toast');
+    if (existingToast) {
+      existingToast.remove();
+    }
+
+    // Create and show error toast
+    const toast = document.createElement('div');
+    toast.className = 'copy-toast copy-toast-error';
+    toast.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="15" y1="9" x2="9" y2="15"></line>
+        <line x1="9" y1="9" x2="15" y2="15"></line>
+      </svg>
+      复制失败，请手动复制
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Trigger animation
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+
+  // Initialize on page load
+  function initialize() {
+    initCodeCopy();
+    
+    // Also initialize when new content is added dynamically
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              const element = node as Element;
+              if (element.tagName === 'PRE' || element.querySelector('pre')) {
+                initCodeCopy();
+              }
+            }
+          });
+        }
+      });
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize);
+  } else {
+    initialize();
+  }
+
+  // Re-initialize on navigation (for Astro's client-side routing)
+  document.addEventListener('astro:page-load', initialize);
+</script>
+
+<style>
+  /* Component-specific styles are now in global.css */
+</style>

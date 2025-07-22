@@ -1,0 +1,266 @@
+---
+/**
+ * Blog Post Layout
+ * 
+ * Main layout for individual blog post pages with:
+ * - SEO-optimized head section
+ * - Responsive grid layout
+ * - Table of contents (auto-generated from headings)
+ * - Post metadata (date, tags, update info)
+ * - Syntax highlighting for code blocks
+ * - Mobile-friendly design
+ * 
+ * Features:
+ * - Two-column layout (content + ToC) on desktop
+ * - Single-column layout on mobile
+ * - Auto-detects headings for ToC generation
+ * - Responsive typography and spacing
+ */
+import type { CollectionEntry } from 'astro:content';
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import FormattedDate from '../components/FormattedDate.astro';
+import CodeBlock from '../components/CodeBlock.astro';
+import TableOfContents from '../components/TableOfContents.astro';
+
+type Props = CollectionEntry<'blog'>['data'];
+
+const { title, description, pubDate, updatedDate, tags = [] } = Astro.props;
+---
+
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={description} />
+		<style>
+			main {
+				padding-top: 2rem;
+			}
+
+			.article-layout {
+				display: grid;
+				grid-template-columns: 280px 1fr;
+				gap: 3rem;
+				max-width: var(--max-width);
+				margin: 0 auto;
+				padding: 0 1rem;
+			}
+
+			.article-sidebar {
+				order: 1;
+			}
+
+			.article-main {
+				order: 2;
+				min-width: 0;
+			}
+
+			/* When no TOC, center the content */
+			body.no-toc .article-layout {
+				grid-template-columns: 1fr;
+				max-width: 800px;
+			}
+
+			body.no-toc .article-sidebar {
+				display: none;
+			}
+
+			.article-header {
+				margin: 0 0 3rem;
+				text-align: center;
+			}
+
+			.article-title {
+				font-size: clamp(2rem, 5vw, 3rem);
+				font-weight: 700;
+				margin-bottom: 1rem;
+				color: var(--primary-text);
+				line-height: 1.2;
+			}
+
+			.article-meta {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				gap: 1rem;
+				margin-bottom: 1.5rem;
+				color: var(--secondary-text);
+				font-size: 0.9rem;
+			}
+
+			.article-meta .divider {
+				color: var(--border-dark);
+			}
+
+			.last-updated {
+				font-style: italic;
+				color: var(--secondary-text);
+				font-size: 0.85rem;
+			}
+
+			.article-tags {
+				display: flex;
+				justify-content: center;
+				gap: 0.5rem;
+				flex-wrap: wrap;
+				margin-bottom: 2rem;
+			}
+
+			.hero-image {
+				margin: 0 0 3rem;
+			}
+
+			.hero-image img {
+				width: 100%;
+				height: auto;
+				border-radius: var(--radius);
+				box-shadow: var(--shadow-lg);
+			}
+
+			.article-content {
+				max-width: none;
+				margin: 0;
+				padding: 0;
+			}
+
+			.article-content :global(h2),
+			.article-content :global(h3),
+			.article-content :global(h4),
+			.article-content :global(h5),
+			.article-content :global(h6) {
+				margin-top: 2.5rem;
+				margin-bottom: 1rem;
+				color: var(--primary-text);
+			}
+
+			.article-content :global(h2) {
+				padding-bottom: 0.5rem;
+				border-bottom: 1px solid var(--border-light);
+			}
+
+			.article-content :global(p) {
+				margin-bottom: 1.5rem;
+				line-height: 1.7;
+			}
+
+			.article-content :global(blockquote) {
+				margin: 2rem 0;
+				padding: 1rem 1.5rem;
+				border-left: 4px solid var(--accent);
+				background-color: var(--bg-secondary);
+				border-radius: 0 var(--radius) var(--radius) 0;
+			}
+
+			.article-content :global(ul),
+			.article-content :global(ol) {
+				margin-bottom: 1.5rem;
+				padding-left: 1.5rem;
+			}
+
+			.article-content :global(li) {
+				margin-bottom: 0.5rem;
+			}
+
+			.article-content :global(table) {
+				width: 100%;
+				margin: 2rem 0;
+				border-collapse: collapse;
+			}
+
+			.article-content :global(th),
+			.article-content :global(td) {
+				padding: 0.75rem;
+				text-align: left;
+				border-bottom: 1px solid var(--border-light);
+			}
+
+			.article-content :global(th) {
+				background-color: var(--bg-secondary);
+				font-weight: 600;
+			}
+
+			@media (max-width: 1024px) {
+				.article-layout {
+					grid-template-columns: 1fr;
+					gap: 0;
+				}
+
+				.article-sidebar {
+					order: 2;
+				}
+
+				.article-main {
+					order: 1;
+				}
+			}
+
+			@media (max-width: 768px) {
+				.article-layout {
+					padding: 0;
+				}
+
+				.article-meta {
+					flex-direction: column;
+					gap: 0.5rem;
+				}
+
+				.article-meta .divider {
+					display: none;
+				}
+
+				.article-tags {
+					margin-bottom: 1.5rem;
+				}
+
+				.hero-image {
+					margin-bottom: 2rem;
+				}
+			}
+		</style>
+	</head>
+
+	<body>
+		<Header />
+		<main>
+			<div class="article-layout">
+				<aside class="article-sidebar">
+					<TableOfContents />
+				</aside>
+				
+				<article class="article-main">
+					<header class="article-header">
+						<h1 class="article-title">{title}</h1>
+						<div class="article-meta">
+							<time datetime={pubDate.toISOString()}>
+								<FormattedDate date={pubDate} />
+							</time>
+							{updatedDate && (
+								<>
+									<span class="divider">•</span>
+									<div class="last-updated">
+										更新于 <FormattedDate date={updatedDate} />
+									</div>
+								</>
+							)}
+						</div>
+						{tags && tags.length > 0 && (
+							<div class="article-tags">
+								{tags.map((tag: string) => (
+									<a href={`/tags/${tag}`} class="tag">
+										#{tag}
+									</a>
+								))}
+							</div>
+						)}
+					</header>
+
+					<div class="article-content">
+						<slot />
+					</div>
+				</article>
+			</div>
+		</main>
+		<CodeBlock />
+		<Footer />
+	</body>
+</html>
