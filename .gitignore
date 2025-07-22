@@ -27,3 +27,9 @@ pnpm-debug.log*
 .wrangler
 .dev.vars
 .claude/
+
+# content files (keep directories but ignore content)
+src/content/about/*.md
+src/content/articles/*.md
+!src/content/about/.gitkeep
+!src/content/articles/.gitkeep
